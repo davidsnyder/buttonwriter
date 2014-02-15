@@ -1,13 +1,13 @@
 package com.buttonlabs.buttonwriter;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+//import java.nio.charset.Charset;
 
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.DialogInterface.OnClickListener;
+import android.view.View.OnClickListener;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -99,8 +99,8 @@ public class WriterActivity extends Activity implements OnClickListener {
 		NdefRecord appRecord = NdefRecord.createApplicationRecord("com.antares.nfc");
 		
 		// record that contains our custom "retro console" game data, using custom MIME_TYPE
-		byte[] payload = getRandomConsole().getBytes();
-		byte[] mimeBytes = MimeType.NFC_DEMO.getBytes(Charset.forName("US-ASCII"));
+		byte[] payload = "hello world".getBytes();
+		byte[] mimeBytes = "bytes".getBytes();
         NdefRecord cardRecord = new NdefRecord(NdefRecord.TNF_MIME_MEDIA, mimeBytes, 
         										new byte[0], payload);
 		NdefMessage message = new NdefMessage(new NdefRecord[] { cardRecord, appRecord});
