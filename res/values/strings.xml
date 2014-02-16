@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World!</string>
     <string name="app_name">ButtonWriter</string>
-
-    <string name="console_card">Console card</string>
-    <string name="write_a_new_tag">Click to write a new tag</string>
+    <string name="write_a_new_button">Write a new button</string>
 </resources>

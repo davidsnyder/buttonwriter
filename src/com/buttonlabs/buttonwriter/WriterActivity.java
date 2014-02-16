@@ -20,8 +20,13 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.buttonlabs.buttonwriter.R;
+import com.parse.ParseACL;
+import com.parse.ParseException;
+import com.parse.ParseObject;
 
 public class WriterActivity extends Activity implements OnClickListener {
+	
+	private String BUTTON_APP_PACKAGE_NAME = "com.antares.nfc"; // replace with button app package name
 	
 	private NfcAdapter mAdapter;
 	private boolean mInWriteMode;
@@ -47,7 +52,7 @@ public class WriterActivity extends Activity implements OnClickListener {
 	
 	public void onClick(View v) {
 		if(v.getId() == R.id.write_tag_button) {
-			mTextView.setText("Touch and hold tag against phone to write.");
+			mTextView.setText("Touch and hold button against phone to write.");
 			enableWriteMode();
 		}
 	}
@@ -55,7 +60,7 @@ public class WriterActivity extends Activity implements OnClickListener {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		disableWriteMode();
+		mAdapter.disableForegroundDispatch(this); // disableWriteMode()
 	}
 	
 	/**
@@ -68,6 +73,8 @@ public class WriterActivity extends Activity implements OnClickListener {
 			
 			// write to newly scanned tag
 			Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+			
+			//TODO Skip if tag is already written?
 			writeTag(tag);
 		}
     }
@@ -86,24 +93,53 @@ public class WriterActivity extends Activity implements OnClickListener {
         
 		mAdapter.enableForegroundDispatch(this, pendingIntent, filters, null);
 	}
+
+	/**
+	 * 
+	 * @param color 
+	 * @return unsaved Button ParseObject
+	 */
+	private ParseObject getNewButton(int color) {
+		ParseObject button = new ParseObject("Button");
+		ParseACL writeAcl = new ParseACL();
+		writeAcl.setPublicWriteAccess(true);
+		writeAcl.setPublicReadAccess(true);  //this should be limited to only users that have bumped the button?
+		button.setACL(writeAcl);
+		button.put("color", color);
+		button.put("isBurned", false);
+		return button;
+	}
 	
-	private void disableWriteMode() {
-		mAdapter.disableForegroundDispatch(this);
+	private ParseObject updateIsBurned(ParseObject button) {
+		button.put("isBurned", true);
+		ParseACL readAcl = new ParseACL();
+		readAcl.setPublicReadAccess(true);
+		button.setACL(readAcl);
+		try {
+			button.save();
+		} catch (ParseException e1) {
+			mTextView.setText("Failed to update isBurned on Parse Server");
+			e1.printStackTrace();
+		}
+	 return button;	
 	}
 	
 	/**
 	 * Format a tag and write our NDEF message
 	 */
 	private boolean writeTag(Tag tag) {
-		// record to launch Play Store if app is not installed
-		NdefRecord appRecord = NdefRecord.createApplicationRecord("com.antares.nfc");
-		
-		// record that contains our custom "retro console" game data, using custom MIME_TYPE
-		byte[] payload = "hello world".getBytes();
-		byte[] mimeBytes = "bytes".getBytes();
-        NdefRecord cardRecord = new NdefRecord(NdefRecord.TNF_MIME_MEDIA, mimeBytes, 
-        										new byte[0], payload);
-		NdefMessage message = new NdefMessage(new NdefRecord[] { cardRecord, appRecord});
+		// launches Play Store if app is not installed
+		NdefRecord appRecord = NdefRecord.createApplicationRecord(BUTTON_APP_PACKAGE_NAME); 
+		ParseObject button = getNewButton(0); // All buttons are color 0 for now
+		try {
+			button.save();
+		} catch (ParseException e1) {
+			mTextView.setText("Failed to getNewButton from Parse Server");
+			e1.printStackTrace();
+		}
+
+		NdefRecord buttonRecord = NdefRecord.createUri(button.getObjectId());
+		NdefMessage message = new NdefMessage(new NdefRecord[] { buttonRecord, appRecord});
         
 		try {
 			// see if tag is already NDEF formatted
@@ -122,9 +158,9 @@ public class WriterActivity extends Activity implements OnClickListener {
 					mTextView.setText("Tag doesn't have enough free space.");
 					return false;
 				}
-
 				ndef.writeNdefMessage(message);
-				mTextView.setText("Tag written successfully.");
+				updateIsBurned(button);
+				mTextView.setText("Button "+ button.getObjectId() +" written successfully");
 				return true;
 			} else {
 				// attempt to format tag
@@ -133,14 +169,15 @@ public class WriterActivity extends Activity implements OnClickListener {
 					try {
 						format.connect();
 						format.format(message);
-						mTextView.setText("Tag written successfully!");
+						updateIsBurned(button);
+						mTextView.setText("Button "+ button.getObjectId() +" written successfully");
 						return true;
 					} catch (IOException e) {
 						mTextView.setText("Unable to format tag to NDEF.");
 						return false;
 					}
 				} else {
-					mTextView.setText("");
+					mTextView.setText("Tag doesn't appear to support NDEF format.");
 					return false;
 				}
 			}
