@@ -163,6 +163,9 @@ public class WriterActivity extends Activity implements OnClickListener {
 				ndef.writeNdefMessage(message);
 				updateIsBurned(button);
 				mTextView.setText("Button "+ button.getObjectId() +" written successfully");
+				if (ndef.canMakeReadOnly()) {
+				   //ndef.makeReadOnly();
+				}
 				return true;
 			} else {
 				// attempt to format tag
@@ -170,9 +173,11 @@ public class WriterActivity extends Activity implements OnClickListener {
 				if (format != null) {
 					try {
 						format.connect();
+						//format.formatReadOnly(message);
 						format.format(message);
 						updateIsBurned(button);
 						mTextView.setText("Button "+ button.getObjectId() +" written successfully");
+
 						return true;
 					} catch (IOException e) {
 						mTextView.setText("Unable to format tag to NDEF.");
