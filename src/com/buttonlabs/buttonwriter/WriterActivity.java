@@ -156,6 +156,8 @@ public class WriterActivity extends Activity implements OnClickListener {
 				int size = message.toByteArray().length;
 				if (ndef.getMaxSize() < size) {
 					mTextView.setText("Tag doesn't have enough free space.");
+					//wasteful...should query for existing buttons with isBurned = false before even creating new ones.
+					button.deleteInBackground(); 
 					return false;
 				}
 				ndef.writeNdefMessage(message);
@@ -174,14 +176,17 @@ public class WriterActivity extends Activity implements OnClickListener {
 						return true;
 					} catch (IOException e) {
 						mTextView.setText("Unable to format tag to NDEF.");
+						button.deleteInBackground();
 						return false;
 					}
 				} else {
 					mTextView.setText("Tag doesn't appear to support NDEF format.");
+					button.deleteInBackground();
 					return false;
 				}
 			}
 		} catch (Exception e) {
+			button.deleteInBackground();
 			mTextView.setText("Failed to write tag");
 		}
 
